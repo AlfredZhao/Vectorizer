@@ -61,7 +61,7 @@ Oracle 23ai 有很多新功能，但用户痛点是不会用。
 
 选择好之后直接点击`创建HNSW索引`按钮。
 
-![step3-索引操作创建HNSW](media/17435724010184/step3-%E7%B4%A2%E5%BC%95%E6%93%8D%E4%BD%9C%E5%88%9B%E5%BB%BAHNSW.png)
+![step3-索引操作创建HNSW](step3-索引操作创建HNSW.png)
 
 **这里关键的设计是：**
 - 创建报错 ORA-51961: 向量内存区域空间不足。
