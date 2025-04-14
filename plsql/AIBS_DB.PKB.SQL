@@ -1,5 +1,4 @@
---AIBS_DB.PKG_BODY
-CREATE OR REPLACE PACKAGE BODY AIBS_DB IS
+create or replace PACKAGE BODY AIBS_DB IS
 
   --获得查询Vector内容的SQL
   FUNCTION get_vector_sql (
@@ -9,11 +8,14 @@ CREATE OR REPLACE PACKAGE BODY AIBS_DB IS
   ) RETURN VARCHAR2 IS
     v_sql VARCHAR2(32767);
   BEGIN
-    v_sql := 'SELECT ' || p_column || ' FROM ' || p_owner || '.' || p_table;
+    v_sql := 'SELECT ' ||
+             p_column ||
+             ' FROM ' ||
+             p_owner|| '.' || p_table;
 
     RETURN v_sql;
   END get_vector_sql;
-  
+
   --创建hnsw索引
   PROCEDURE create_hnsw_index (
 	  p_index_name      IN VARCHAR2,
@@ -32,15 +34,16 @@ CREATE OR REPLACE PACKAGE BODY AIBS_DB IS
 	    APEX_UTIL.SET_SESSION_STATE('P5_MESSAGE', 'Error: Owner must be specified');
 	    RETURN;
 	  END IF;
-	
+
 	  -- 基本 SQL，移除 DBMS_ASSERT.ENQUOTE_NAME，直接拼接参数
-	  v_sql := 'CREATE VECTOR INDEX ' || p_index_name || 
+      -- 修复bug: 在新建的索引名称前面需要明确指定用户，以适应跨用户创建场景，否则会报错ORA-942表或视图不存在
+	  v_sql := 'CREATE VECTOR INDEX ' || p_owner || '.' || p_index_name || 
 	           ' ON ' || p_owner || '.' || p_table_name || 
 	           '(' || p_column_name || ') ' ||
 	           'ORGANIZATION INMEMORY NEIGHBOR GRAPH ' ||
 	           'DISTANCE ' || UPPER(p_distance_type) || ' ' ||
 	           'WITH TARGET ACCURACY ' || TO_CHAR(p_target_accuracy);
-	
+
 	  -- 如果提供了参数，则添加 PARAMETERS 子句
 	  IF p_neighbors IS NOT NULL OR p_efconstruction IS NOT NULL THEN
 	    v_sql := v_sql || ' PARAMETERS (type HNSW';
@@ -52,13 +55,13 @@ CREATE OR REPLACE PACKAGE BODY AIBS_DB IS
 	    END IF;
 	    v_sql := v_sql || ')';
 	  END IF;
-	
+
 	  -- 调试输出（可选）
 	  APEX_DEBUG.MESSAGE('Generated SQL: ' || v_sql);
-	
+
 	  -- 执行动态 SQL
 	  EXECUTE IMMEDIATE v_sql;
-	
+
 	  -- 成功消息
 	  APEX_UTIL.SET_SESSION_STATE('P5_MESSAGE', 'Index created successfully');
 	EXCEPTION
@@ -69,4 +72,3 @@ CREATE OR REPLACE PACKAGE BODY AIBS_DB IS
 	END create_hnsw_index;
 
 END AIBS_DB;
-/
