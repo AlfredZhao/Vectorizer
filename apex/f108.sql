@@ -33,12 +33,12 @@ prompt APPLICATION 108 - Vectorizer
 -- Application Export:
 --   Application:     108
 --   Name:            Vectorizer
---   Date and Time:   10:08 星期二 4月 8, 2025
+--   Date and Time:   06:45 Monday April 14, 2025
 --   Exported By:     ADMIN
 --   Flashback:       0
 --   Export Type:     Application Export
 --     Pages:                      7
---       Items:                   26
+--       Items:                   28
 --       Validations:              2
 --       Processes:                5
 --       Regions:                 15
@@ -108,7 +108,7 @@ wwv_imp_workspace.create_flow(
 ,p_substitution_value_01=>'Vectorizer'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>11
-,p_version_scn=>115936452
+,p_version_scn=>118701731
 ,p_print_server_type=>'NATIVE'
 ,p_file_storage=>'DB'
 ,p_is_pwa=>'Y'
@@ -5798,6 +5798,55 @@ wwv_flow_imp_page.create_page_item(
   'send_on_page_submit', 'Y',
   'show_line_breaks', 'Y')).to_clob
 );
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(5628439289711440)
+,p_name=>'P4_EMBEDDING_CONF'
+,p_item_sequence=>10
+,p_item_plug_id=>wwv_flow_imp.id(4895764926503138)
+,p_item_display_point=>'PREVIOUS'
+,p_item_default=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select conf_id from custom_select_ai_embedding_conf',
+'where rownum = 1;'))
+,p_item_default_type=>'SQL_QUERY'
+,p_prompt=>unistr('\9009\62E9 Embedding \6A21\578B')
+,p_display_as=>'NATIVE_POPUP_LOV'
+,p_lov=>'select conf_id from custom_select_ai_embedding_conf;'
+,p_cSize=>30
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_lov_display_extra=>'YES'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'case_sensitive', 'N',
+  'display_as', 'POPUP',
+  'fetch_on_search', 'N',
+  'initial_fetch', 'FIRST_ROWSET',
+  'manual_entry', 'N',
+  'match_type', 'CONTAINS',
+  'min_chars', '0')).to_clob
+);
+wwv_flow_imp_page.create_page_item(
+ p_id=>wwv_flow_imp.id(5628532246711441)
+,p_name=>'P4_TEXT_LENGTH'
+,p_item_sequence=>20
+,p_item_plug_id=>wwv_flow_imp.id(4895764926503138)
+,p_item_display_point=>'PREVIOUS'
+,p_item_default=>'0'
+,p_prompt=>unistr('\9009\62E9\6587\672C\957F\5EA6')
+,p_display_as=>'NATIVE_POPUP_LOV'
+,p_lov=>unistr('STATIC2:\65E0\9650\5236;0,500;500,1000;1000,8000;8000')
+,p_cSize=>30
+,p_field_template=>1609121967514267634
+,p_item_template_options=>'#DEFAULT#'
+,p_lov_display_extra=>'YES'
+,p_attributes=>wwv_flow_t_plugin_attributes(wwv_flow_t_varchar2(
+  'case_sensitive', 'N',
+  'display_as', 'POPUP',
+  'fetch_on_search', 'N',
+  'initial_fetch', 'FIRST_ROWSET',
+  'manual_entry', 'N',
+  'match_type', 'CONTAINS',
+  'min_chars', '0')).to_clob
+);
 wwv_flow_imp_page.create_page_da_event(
  p_id=>wwv_flow_imp.id(5024244319050320)
 ,p_name=>unistr('\6307\5B9A\5217\5411\91CF\5316')
@@ -5822,13 +5871,24 @@ wwv_flow_imp_page.create_page_da_action(
 '    v_content  CLOB;',
 '    v_rid      ROWID;',
 '    cur        SYS_REFCURSOR;',
+'    v_text     CLOB;',
 'BEGIN',
+unistr('    -- \9A8C\8BC1\8F93\5165'),
+'    IF :P4_EMBEDDING_CONF IS NULL THEN',
+unistr('        APEX_UTIL.SET_SESSION_STATE(''P4_MESSAGE'', ''\9519\8BEF\FF1A\8BF7\5148\9009\62E9 Embedding \6A21\578B\FF01'');'),
+'        RETURN;',
+'    END IF;',
+'    IF :P4_TEXT_LENGTH IS NULL THEN',
+unistr('        APEX_UTIL.SET_SESSION_STATE(''P4_MESSAGE'', ''\9519\8BEF\FF1A\8BF7\5148\9009\62E9\6587\672C\957F\5EA6\FF01'');'),
+'        RETURN;',
+'    END IF;',
+'',
 unistr('    -- \6784\9020\52A8\6001 SQL'),
 '    v_sql := ''',
-'        SELECT rowid, '' || DBMS_ASSERT.ENQUOTE_NAME(:P4_COLUMN) || ''',
-'        FROM '' || DBMS_ASSERT.ENQUOTE_NAME(:P4_OWNER) || ''.'' || DBMS_ASSERT.ENQUOTE_NAME(:P4_TABLE) || ''',
-'        WHERE '' || DBMS_ASSERT.ENQUOTE_NAME(:P4_COLUMN) || '' IS NOT NULL',
-'          AND '' || DBMS_ASSERT.ENQUOTE_NAME(:P4_VEC_COL) || '' IS NULL'';',
+'        SELECT rowid, '' || UPPER(:P4_COLUMN) || ''',
+'        FROM '' || UPPER(:P4_OWNER) || ''.'' || UPPER(:P4_TABLE) || ''',
+'        WHERE '' || UPPER(:P4_COLUMN) || '' IS NOT NULL',
+'          AND '' || UPPER(:P4_VEC_COL) || '' IS NULL'';',
 '',
 unistr('    -- \6253\5F00\6E38\6807'),
 '    OPEN cur FOR v_sql;',
@@ -5838,35 +5898,44 @@ unistr('    -- \6253\5F00\6E38\6807'),
 '        EXIT WHEN cur%NOTFOUND;',
 '',
 '        BEGIN',
-unistr('            -- \622A\65AD\6587\672C\907F\514D\8D85\8FC7 token \9650\5236'),
+unistr('            -- \6839\636E\7528\6237\9009\62E9\7684\957F\5EA6\5904\7406\6587\672C'),
+'            IF :P4_TEXT_LENGTH = ''0'' THEN',
+unistr('                v_text := v_content; -- \65E0\9650\5236'),
+'            ELSE',
+'                v_text := SUBSTR(v_content, 1, TO_NUMBER(:P4_TEXT_LENGTH));',
+'            END IF;',
+'',
+unistr('            -- \751F\6210\5411\91CF'),
 '            v_vec := CUSTOM_SELECT_AI.EMBEDDING(',
-'                p_text           => SUBSTR(v_content, 1, 1000),',
-'                p_embedding_conf => ''EMBEDDING''',
+'                p_text           => v_text,',
+'                p_embedding_conf => :P4_EMBEDDING_CONF',
 '            );',
 '',
 unistr('            -- \6267\884C\66F4\65B0'),
 '            EXECUTE IMMEDIATE ''',
-'                UPDATE '' || DBMS_ASSERT.ENQUOTE_NAME(:P4_OWNER) || ''.'' || DBMS_ASSERT.ENQUOTE_NAME(:P4_TABLE) || ''',
-'                SET '' || DBMS_ASSERT.ENQUOTE_NAME(:P4_VEC_COL) || '' = :1',
+'                UPDATE '' || UPPER(:P4_OWNER) || ''.'' || UPPER(:P4_TABLE) || ''',
+'                SET '' || UPPER(:P4_VEC_COL) || '' = :1',
 '                WHERE rowid = :2''',
 '            USING v_vec, v_rid;',
 '',
 '        EXCEPTION',
 '            WHEN OTHERS THEN',
-unistr('                DBMS_OUTPUT.PUT_LINE(''\8DF3\8FC7\884C: '' || v_rid || '' - \9519\8BEF: '' || SQLERRM);'),
+unistr('                APEX_DEBUG.MESSAGE(''\8DF3\8FC7\884C: '' || v_rid || '' - \9519\8BEF: '' || SQLERRM);'),
 '        END;',
 '    END LOOP;',
 '',
 '    CLOSE cur;',
 '',
 '    COMMIT;',
-unistr('    APEX_UTIL.SET_SESSION_STATE(''P4_MESSAGE'', ''\6307\5B9A\5217\5411\91CF\5316\64CD\4F5C\FF1A\5DF2\5BF9\9009\5B9A\5185\5BB9\5217\FF1A ''|| :P4_COLUMN ||'' \5411\91CF\5316\5E76\5B58\50A8\5728 '''),
-unistr('                                || :P4_VEC_COL || '' \5411\91CF\5217\4E2D\FF01'');'),
+unistr('    APEX_UTIL.SET_SESSION_STATE(''P4_MESSAGE'', ''\6307\5B9A\5217\5411\91CF\5316\64CD\4F5C\FF1A\5DF2\5BF9\9009\5B9A\5185\5BB9\5217\FF1A '' || :P4_COLUMN || '),
+unistr('                                '' \4F7F\7528\6A21\578B '' || :P4_EMBEDDING_CONF || '),
+unistr('                                ''\FF08\6587\672C\957F\5EA6\FF1A'' || CASE :P4_TEXT_LENGTH WHEN ''0'' THEN ''\65E0\9650\5236'' ELSE :P4_TEXT_LENGTH || '' \5B57\7B26'' END || ''\FF09\5411\91CF\5316\5E76\5B58\50A8\5728 '' || '),
+unistr('                                :P4_VEC_COL || '' \5411\91CF\5217\4E2D\FF01'');'),
 'EXCEPTION',
 '    WHEN OTHERS THEN',
 unistr('        APEX_UTIL.SET_SESSION_STATE(''P4_MESSAGE'', ''\9519\8BEF\FF1A'' || SQLERRM);'),
 'END;'))
-,p_attribute_02=>'P4_OWNER,P4_TABLE,P4_COLUMN,P4_VEC_COL'
+,p_attribute_02=>'P4_OWNER,P4_TABLE,P4_COLUMN,P4_VEC_COL,P4_EMBEDDING_CONF,P4_TEXT_LENGTH'
 ,p_attribute_03=>'P4_MESSAGE'
 ,p_attribute_04=>'N'
 ,p_attribute_05=>'PLSQL'
@@ -6332,7 +6401,7 @@ wwv_flow_imp_page.create_page_plug(
 ,p_plug_display_sequence=>10
 ,p_query_type=>'SQL'
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select column_name from ALL_TAB_COLUMNS ',
+'select column_name, VECTOR_INFO from ALL_TAB_COLUMNS ',
 ' where owner = :P6_OWNER and table_name = :P6_TABLE and DATA_TYPE = ''VECTOR'''))
 ,p_plug_source_type=>'NATIVE_IR'
 ,p_ajax_items_to_submit=>'P6_OWNER,P6_TABLE'
@@ -6386,6 +6455,16 @@ wwv_flow_imp_page.create_worksheet_column(
 ,p_display_order=>10
 ,p_column_identifier=>'A'
 ,p_column_label=>'Column Name'
+,p_column_type=>'STRING'
+,p_heading_alignment=>'LEFT'
+,p_use_as_row_header=>'N'
+);
+wwv_flow_imp_page.create_worksheet_column(
+ p_id=>wwv_flow_imp.id(5628358659711439)
+,p_db_column_name=>'VECTOR_INFO'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'Vector Info'
 ,p_column_type=>'STRING'
 ,p_heading_alignment=>'LEFT'
 ,p_use_as_row_header=>'N'
